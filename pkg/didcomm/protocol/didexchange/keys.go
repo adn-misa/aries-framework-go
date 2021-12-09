@@ -41,12 +41,12 @@ func (ctx *context) createNewKeyAndVM(didDoc *did.Doc) error {
 func (ctx *context) createSigningVM() (*did.VerificationMethod, error) {
 	vmType := getVerMethodType(ctx.keyType)
 
-	_, pubKeyBytes, err := ctx.kms.CreateAndExportPubKeyBytes(ctx.keyType)
+	kid, pubKeyBytes, err := ctx.kms.CreateAndExportPubKeyBytes(ctx.keyType)
 	if err != nil {
 		return nil, fmt.Errorf("createSigningVM: %w", err)
 	}
 
-	vmID := "#key-1"
+	vmID := "#" + kid
 
 	switch vmType {
 	case ed25519VerificationKey2018, bls12381G2Key2020:
@@ -68,12 +68,12 @@ func (ctx *context) createEncryptionVM() (*did.VerificationMethod, error) {
 
 	vmType := getVerMethodType(encKeyType)
 
-	_, kaPubKeyBytes, err := ctx.kms.CreateAndExportPubKeyBytes(encKeyType)
+	kid, kaPubKeyBytes, err := ctx.kms.CreateAndExportPubKeyBytes(encKeyType)
 	if err != nil {
 		return nil, fmt.Errorf("createEncryptionVM: %w", err)
 	}
 
-	vmID := "#key-2"
+	vmID := "#" + kid
 
 	switch vmType {
 	case x25519KeyAgreementKey2019:
