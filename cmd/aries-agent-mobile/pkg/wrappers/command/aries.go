@@ -18,6 +18,7 @@ import (
 	"github.com/hyperledger/aries-framework-go/cmd/aries-agent-mobile/pkg/wrappers/config"
 	"github.com/hyperledger/aries-framework-go/cmd/aries-agent-mobile/pkg/wrappers/notifier"
 	"github.com/hyperledger/aries-framework-go/cmd/aries-agent-mobile/pkg/wrappers/storage"
+	"github.com/hyperledger/aries-framework-go/component/storageutil/cachedstore"
 	"github.com/hyperledger/aries-framework-go/component/storageutil/mem"
 	"github.com/hyperledger/aries-framework-go/pkg/common/log"
 	"github.com/hyperledger/aries-framework-go/pkg/controller"
@@ -26,7 +27,7 @@ import (
 	"github.com/hyperledger/aries-framework-go/pkg/controller/command/introduce"
 	"github.com/hyperledger/aries-framework-go/pkg/controller/command/issuecredential"
 	"github.com/hyperledger/aries-framework-go/pkg/controller/command/kms"
-	"github.com/hyperledger/aries-framework-go/pkg/controller/command/ld"
+	ldcommand "github.com/hyperledger/aries-framework-go/pkg/controller/command/ld"
 	"github.com/hyperledger/aries-framework-go/pkg/controller/command/mediator"
 	"github.com/hyperledger/aries-framework-go/pkg/controller/command/messaging"
 	"github.com/hyperledger/aries-framework-go/pkg/controller/command/outofband"
@@ -37,7 +38,10 @@ import (
 	"github.com/hyperledger/aries-framework-go/pkg/didcomm/messaging/msghandler"
 	arieshttp "github.com/hyperledger/aries-framework-go/pkg/didcomm/transport/http"
 	"github.com/hyperledger/aries-framework-go/pkg/didcomm/transport/ws"
+	"github.com/hyperledger/aries-framework-go/pkg/doc/ld"
 	"github.com/hyperledger/aries-framework-go/pkg/framework/aries"
+	"github.com/hyperledger/aries-framework-go/pkg/framework/context"
+	ldstore "github.com/hyperledger/aries-framework-go/pkg/store/ld"
 	"github.com/hyperledger/aries-framework-go/pkg/vdr/httpbinding"
 )
 
@@ -105,8 +109,9 @@ func prepareFrameworkOptions(opts *config.Options) ([]aries.Option, error) {
 		options = append(options, aries.WithTransportReturnRoute(opts.TransportReturnRoute))
 	}
 
+	storeProvider := storage.New(opts.Storage)
 	if opts.Storage != nil {
-		options = append(options, aries.WithStoreProvider(storage.New(opts.Storage)))
+		options = append(options, aries.WithStoreProvider(storeProvider))
 	} else {
 		options = append(options, aries.WithStoreProvider(mem.NewProvider()))
 	}
@@ -137,7 +142,12 @@ func prepareFrameworkOptions(opts *config.Options) ([]aries.Option, error) {
 	}
 
 	if opts.DocumentLoader != nil {
-		options = append(options, aries.WithJSONLDDocumentLoader(opts.DocumentLoader))
+		ctx, err := createJsonLdContext(storeProvider)
+		documentLoader, err := ld.NewDocumentLoader(ctx, ld.WithRemoteDocumentLoader(opts.DocumentLoader))
+		if err != nil {
+			return nil, fmt.Errorf("failed to prepare document loader opts : %w", err)
+		}
+		options = append(options, aries.WithJSONLDDocumentLoader(documentLoader))
 	}
 
 	return options, nil
@@ -166,6 +176,29 @@ func getResolverOpts(httpResolvers []string) ([]aries.Option, error) {
 	}
 
 	return opts, nil
+}
+
+func createJsonLdContext(storageProvider *storage.Provider) (*context.Provider, error)  {
+	contextStore, err := ldstore.NewContextStore(cachedstore.NewProvider(storageProvider, mem.NewProvider()))
+	if err != nil {
+		return nil, fmt.Errorf("create JSON-LD context store: %w", err)
+	}
+
+	remoteProviderStore, err := ldstore.NewRemoteProviderStore(storageProvider)
+	if err != nil {
+		return nil, fmt.Errorf("create remote provider store: %w", err)
+	}
+
+	ctx, err := context.New(
+		context.WithStorageProvider(storageProvider),
+		context.WithJSONLDContextStore(contextStore),
+		context.WithJSONLDRemoteProviderStore(remoteProviderStore),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("context creation failed: %w", err)
+	}
+
+	return ctx, nil
 }
 
 func populateHandlers(commands []command.Handler, pkgMap map[string]map[string]command.Exec) {
@@ -332,9 +365,9 @@ func (a *Aries) GetKMSController() (api.KMSController, error) {
 
 // GetLDController returns an LD instance.
 func (a *Aries) GetLDController() (api.LDController, error) {
-	handlers, ok := a.handlers[ld.CommandName]
+	handlers, ok := a.handlers[ldcommand.CommandName]
 	if !ok {
-		return nil, fmt.Errorf("no handlers found for controller [%s]", ld.CommandName)
+		return nil, fmt.Errorf("no handlers found for controller [%s]", ldcommand.CommandName)
 	}
 
 	return &LD{handlers: handlers}, nil
