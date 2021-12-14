@@ -214,7 +214,7 @@ func (s *requestReceived) Execute(md *metaData) (state, stateAction, error) {
 		return &presentationSent{V: s.V, WillConfirm: req.Body.WillConfirm}, zeroAction, nil
 	}
 
-	var req *RequestPresentation
+	var req *RequestPresentationV2
 
 	if err := md.Msg.Decode(&req); err != nil {
 		return nil, nil, err
@@ -262,7 +262,7 @@ func (s *requestSent) Execute(md *metaData) (state, stateAction, error) {
 			return &noOp{}, forwardInitial(md, getDIDVersion(s.V)), nil
 		}
 
-		var req *RequestPresentation
+		var req *RequestPresentationV2
 
 		if err := md.Msg.Decode(&req); err != nil {
 			return nil, nil, err
@@ -377,8 +377,9 @@ func (s *presentationReceived) Execute(md *metaData) (state, stateAction, error)
 	action := func(messenger service.Messenger) error {
 		if s.V == SpecV3 {
 			return messenger.ReplyToMsg(md.Msg, service.NewDIDCommMsgMap(model.AckV2{
-				Type: AckMsgTypeV3,
-				Body: model.AckV2Body{WebRedirect: md.properties[webRedirect]},
+				Type:        AckMsgTypeV3,
+				WebRedirect: md.properties[webRedirect],
+				Body:        model.AckV2Body{},
 			}), md.MyDID, md.TheirDID, service.WithVersion(getDIDVersion(s.V)))
 		}
 

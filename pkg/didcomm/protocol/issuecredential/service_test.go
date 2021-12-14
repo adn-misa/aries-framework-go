@@ -55,21 +55,21 @@ func TestService_UseV2(t *testing.T) {
 			}{
 				Type: IssueCredentialMsgTypeV2,
 			}),
-			offerCredential:   &OfferCredential{Type: OfferCredentialMsgTypeV2},
-			proposeCredential: &ProposeCredential{Type: ProposeCredentialMsgTypeV2},
-			issueCredential:   &IssueCredential{Type: IssueCredentialMsgTypeV2},
-			requestCredential: &RequestCredential{Type: RequestCredentialMsgTypeV2},
-			credentialNames:   []string{"name"},
+			offerCredentialV2:   &OfferCredentialV2{Type: OfferCredentialMsgTypeV2},
+			proposeCredentialV2: &ProposeCredentialV2{Type: ProposeCredentialMsgTypeV2},
+			issueCredentialV2:   &IssueCredentialV2{Type: IssueCredentialMsgTypeV2},
+			requestCredentialV2: &RequestCredentialV2{Type: RequestCredentialMsgTypeV2},
+			credentialNames:     []string{"name"},
 		}
 		var executed bool
 		svc.Use(func(next Handler) Handler {
 			return HandlerFunc(func(metadata Metadata) error {
 				require.Equal(t, meta.msgClone, metadata.Message())
 				require.Equal(t, metadata.Message().Type(), IssueCredentialMsgTypeV2)
-				require.Equal(t, meta.offerCredential, metadata.OfferCredential())
-				require.Equal(t, meta.proposeCredential, metadata.ProposeCredential())
-				require.Equal(t, meta.issueCredential, metadata.IssueCredential())
-				require.Equal(t, meta.requestCredential, metadata.RequestCredential())
+				require.Equal(t, meta.offerCredentialV2, metadata.OfferCredentialV2())
+				require.Equal(t, meta.proposeCredentialV2, metadata.ProposeCredentialV2())
+				require.Equal(t, meta.issueCredentialV2, metadata.IssueCredentialV2())
+				require.Equal(t, meta.requestCredentialV2, metadata.RequestCredentialV2())
 				require.Equal(t, meta.credentialNames, metadata.CredentialNames())
 				require.Equal(t, meta.state.Name(), metadata.StateName())
 
@@ -157,21 +157,21 @@ func TestService_UseV3(t *testing.T) {
 			}{
 				Type: IssueCredentialMsgTypeV3,
 			}),
-			offerCredential:   &OfferCredential{Type: OfferCredentialMsgTypeV3},
-			proposeCredential: &ProposeCredential{Type: ProposeCredentialMsgTypeV3},
-			issueCredential:   &IssueCredential{Type: IssueCredentialMsgTypeV3},
-			requestCredential: &RequestCredential{Type: RequestCredentialMsgTypeV3},
-			credentialNames:   []string{"name"},
+			offerCredentialV2:   &OfferCredentialV2{Type: OfferCredentialMsgTypeV3},
+			proposeCredentialV2: &ProposeCredentialV2{Type: ProposeCredentialMsgTypeV3},
+			issueCredentialV2:   &IssueCredentialV2{Type: IssueCredentialMsgTypeV3},
+			requestCredentialV2: &RequestCredentialV2{Type: RequestCredentialMsgTypeV3},
+			credentialNames:     []string{"name"},
 		}
 		var executed bool
 		svc.Use(func(next Handler) Handler {
 			return HandlerFunc(func(metadata Metadata) error {
 				require.Equal(t, meta.msgClone, metadata.Message())
 				require.Equal(t, metadata.Message().Type(), IssueCredentialMsgTypeV3)
-				require.Equal(t, meta.offerCredential, metadata.OfferCredential())
-				require.Equal(t, meta.proposeCredential, metadata.ProposeCredential())
-				require.Equal(t, meta.issueCredential, metadata.IssueCredential())
-				require.Equal(t, meta.requestCredential, metadata.RequestCredential())
+				require.Equal(t, meta.offerCredentialV2, metadata.OfferCredentialV2())
+				require.Equal(t, meta.proposeCredentialV2, metadata.ProposeCredentialV2())
+				require.Equal(t, meta.issueCredentialV2, metadata.IssueCredentialV2())
+				require.Equal(t, meta.requestCredentialV2, metadata.RequestCredentialV2())
 				require.Equal(t, meta.credentialNames, metadata.CredentialNames())
 				require.Equal(t, meta.state.Name(), metadata.StateName())
 
@@ -298,7 +298,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 
 		require.NoError(t, svc.RegisterActionEvent(make(chan<- service.DIDCommAction)))
 
-		msg := service.NewDIDCommMsgMap(ProposeCredential{
+		msg := service.NewDIDCommMsgMap(ProposeCredentialV2{
 			Type: ProposeCredentialMsgTypeV2,
 		})
 		msg.SetID(uuid.New().String())
@@ -347,7 +347,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(ProposeCredential{
+		msg := service.NewDIDCommMsgMap(ProposeCredentialV2{
 			Type: ProposeCredentialMsgTypeV2,
 		})
 
@@ -383,7 +383,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 			Do(func(_, msg service.DIDCommMsgMap, _, _ string, opts ...service.Opt) error {
 				defer close(done)
 
-				r := &OfferCredential{}
+				r := &OfferCredentialV2{}
 				require.NoError(t, msg.Decode(r))
 				require.Equal(t, OfferCredentialMsgTypeV2, r.Type)
 
@@ -405,7 +405,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(ProposeCredential{
+		msg := service.NewDIDCommMsgMap(ProposeCredentialV2{
 			Type: ProposeCredentialMsgTypeV2,
 		})
 
@@ -422,7 +422,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		require.Equal(t, properties.MyDID(), Alice)
 		require.Equal(t, properties.TheirDID(), Bob)
 
-		action.Continue(WithOfferCredential(&OfferCredential{}))
+		action.Continue(WithOfferCredential(&OfferCredentialParams{}))
 
 		select {
 		case <-done:
@@ -443,7 +443,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 			Do(func(_, msg service.DIDCommMsgMap, _, _ string, opts ...service.Opt) error {
 				defer close(done)
 
-				r := &OfferCredential{}
+				r := &OfferCredentialV2{}
 				require.NoError(t, msg.Decode(r))
 				require.Equal(t, OfferCredentialMsgTypeV2, r.Type)
 
@@ -456,7 +456,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(ProposeCredential{
+		msg := service.NewDIDCommMsgMap(ProposeCredentialV2{
 			Type: ProposeCredentialMsgTypeV2,
 		})
 
@@ -470,7 +470,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		for _, action := range actions {
 			require.Equal(t, action.MyDID, Alice)
 			require.Equal(t, action.TheirDID, Bob)
-			require.NoError(t, svc.ActionContinue(action.PIID, WithOfferCredential(&OfferCredential{})))
+			require.NoError(t, svc.ActionContinue(action.PIID, WithOfferCredential(&OfferCredentialParams{})))
 		}
 
 		select {
@@ -507,7 +507,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(ProposeCredential{
+		msg := service.NewDIDCommMsgMap(ProposeCredentialV2{
 			Type: ProposeCredentialMsgTypeV2,
 		})
 
@@ -563,7 +563,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(OfferCredential{
+		msg := service.NewDIDCommMsgMap(OfferCredentialV2{
 			Type: OfferCredentialMsgTypeV2,
 		})
 
@@ -597,7 +597,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 			Do(func(_, msg service.DIDCommMsgMap, _, _ string, opts ...service.Opt) error {
 				defer close(done)
 
-				r := &ProposeCredential{}
+				r := &ProposeCredentialV2{}
 				require.NoError(t, msg.Decode(r))
 				require.Equal(t, ProposeCredentialMsgTypeV2, r.Type)
 
@@ -619,7 +619,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(OfferCredential{
+		msg := service.NewDIDCommMsgMap(OfferCredentialV2{
 			Type: OfferCredentialMsgTypeV2,
 		})
 
@@ -636,7 +636,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		require.Equal(t, properties.MyDID(), Alice)
 		require.Equal(t, properties.TheirDID(), Bob)
 
-		action.Continue(WithProposeCredential(&ProposeCredential{}))
+		action.Continue(WithProposeCredential(&ProposeCredentialParams{}))
 
 		select {
 		case <-done:
@@ -653,7 +653,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 			Do(func(_, msg service.DIDCommMsgMap, _, _ string, opts ...service.Opt) error {
 				defer close(done)
 
-				r := &RequestCredential{}
+				r := &RequestCredentialV2{}
 				require.NoError(t, msg.Decode(r))
 				require.Equal(t, RequestCredentialMsgTypeV2, r.Type)
 
@@ -675,7 +675,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(OfferCredential{
+		msg := service.NewDIDCommMsgMap(OfferCredentialV2{
 			Type: OfferCredentialMsgTypeV2,
 		})
 
@@ -692,7 +692,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		require.Equal(t, properties.MyDID(), Alice)
 		require.Equal(t, properties.TheirDID(), Bob)
 
-		action.Continue(WithRequestCredential(&RequestCredential{}))
+		action.Continue(WithRequestCredential(&RequestCredentialParams{}))
 
 		select {
 		case <-done:
@@ -710,7 +710,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 			Do(func(_, msg service.DIDCommMsgMap, _, _ string, opts ...service.Opt) error {
 				defer close(done)
 
-				r := &RequestCredential{}
+				r := &RequestCredentialV2{}
 				require.NoError(t, msg.Decode(r))
 				require.Equal(t, RequestCredentialMsgTypeV2, r.Type)
 				require.Equal(t, attachment, r.RequestsAttach)
@@ -733,7 +733,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(OfferCredential{
+		msg := service.NewDIDCommMsgMap(OfferCredentialV2{
 			Type:         OfferCredentialMsgTypeV2,
 			OffersAttach: attachment,
 		})
@@ -792,7 +792,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(RequestCredential{
+		msg := service.NewDIDCommMsgMap(RequestCredentialV2{
 			Type: RequestCredentialMsgTypeV2,
 		})
 
@@ -826,7 +826,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 			Do(func(_, msg service.DIDCommMsgMap, _, _ string, opts ...service.Opt) error {
 				defer close(done)
 
-				r := &IssueCredential{}
+				r := &IssueCredentialV2{}
 				require.NoError(t, msg.Decode(r))
 				require.Equal(t, IssueCredentialMsgTypeV2, r.Type)
 
@@ -848,7 +848,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(RequestCredential{
+		msg := service.NewDIDCommMsgMap(RequestCredentialV2{
 			Type: RequestCredentialMsgTypeV2,
 		})
 
@@ -865,7 +865,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		require.Equal(t, properties.MyDID(), Alice)
 		require.Equal(t, properties.TheirDID(), Bob)
 
-		action.Continue(WithIssueCredential(&IssueCredential{}))
+		action.Continue(WithIssueCredential(&IssueCredentialParams{}))
 
 		select {
 		case <-done:
@@ -895,7 +895,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(RequestCredential{
+		msg := service.NewDIDCommMsgMap(RequestCredentialV2{
 			Type: ProblemReportMsgTypeV2,
 		})
 
@@ -912,7 +912,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		require.Equal(t, properties.MyDID(), Alice)
 		require.Equal(t, properties.TheirDID(), Bob)
 
-		action.Continue(WithIssueCredential(&IssueCredential{}))
+		action.Continue(WithIssueCredential(&IssueCredentialParams{}))
 
 		select {
 		case <-done:
@@ -942,7 +942,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(RequestCredential{
+		msg := service.NewDIDCommMsgMap(RequestCredentialV2{
 			Type: ProblemReportMsgTypeV2,
 		})
 
@@ -998,7 +998,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 		issued := time.Date(2010, time.January, 1, 19, 23, 24, 0, time.UTC)
-		msg := service.NewDIDCommMsgMap(IssueCredential{
+		msg := service.NewDIDCommMsgMap(IssueCredentialV2{
 			Type: IssueCredentialMsgTypeV2,
 			CredentialsAttach: []decorator.Attachment{
 				{Data: decorator.AttachmentData{JSON: &verifiable.Credential{
@@ -1080,7 +1080,7 @@ func TestService_HandleInboundV2(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(IssueCredential{
+		msg := service.NewDIDCommMsgMap(IssueCredentialV2{
 			Type: IssueCredentialMsgTypeV2,
 		})
 
@@ -1165,19 +1165,29 @@ func TestService_HandleInboundV3(t *testing.T) {
 
 	const errMsg = "error"
 
-	store := storageMocks.NewMockStore(ctrl)
+	initMocks := func(controller *gomock.Controller) (
+		store *storageMocks.MockStore,
+		messenger *serviceMocks.MockMessenger,
+		provider *issuecredentialMocks.MockProvider,
+	) {
+		store = storageMocks.NewMockStore(controller)
 
-	storeProvider := storageMocks.NewMockProvider(ctrl)
-	storeProvider.EXPECT().OpenStore(gomock.Any()).Return(store, nil).AnyTimes()
-	storeProvider.EXPECT().SetStoreConfig(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		storeProvider := storageMocks.NewMockProvider(controller)
+		storeProvider.EXPECT().OpenStore(gomock.Any()).Return(store, nil).AnyTimes()
+		storeProvider.EXPECT().SetStoreConfig(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	messenger := serviceMocks.NewMockMessenger(ctrl)
+		messenger = serviceMocks.NewMockMessenger(controller)
 
-	provider := issuecredentialMocks.NewMockProvider(ctrl)
-	provider.EXPECT().Messenger().Return(messenger).AnyTimes()
-	provider.EXPECT().StorageProvider().Return(storeProvider).AnyTimes()
+		provider = issuecredentialMocks.NewMockProvider(controller)
+		provider.EXPECT().Messenger().Return(messenger).AnyTimes()
+		provider.EXPECT().StorageProvider().Return(storeProvider).AnyTimes()
+
+		return store, messenger, provider
+	}
 
 	t.Run("DB error (saveTransitionalPayload)", func(t *testing.T) {
+		store, _, provider := initMocks(ctrl)
+
 		store.EXPECT().Get(gomock.Any()).Return(nil, storage.ErrDataNotFound)
 		store.EXPECT().Put(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(errMsg))
 
@@ -1186,7 +1196,7 @@ func TestService_HandleInboundV3(t *testing.T) {
 
 		require.NoError(t, svc.RegisterActionEvent(make(chan<- service.DIDCommAction)))
 
-		msg := service.NewDIDCommMsgMap(ProposeCredential{
+		msg := service.NewDIDCommMsgMap(ProposeCredentialV2{
 			Type: ProposeCredentialMsgTypeV3,
 		})
 		msg.SetID(uuid.New().String())
@@ -1195,6 +1205,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Propose Credential Stop", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		messenger.EXPECT().
@@ -1225,7 +1237,7 @@ func TestService_HandleInboundV3(t *testing.T) {
 		ch := make(chan service.DIDCommAction, 1)
 		require.NoError(t, svc.RegisterActionEvent(ch))
 
-		msg := service.NewDIDCommMsgMap(ProposeCredential{
+		msg := service.NewDIDCommMsgMap(ProposeCredentialV2{
 			Type: ProposeCredentialMsgTypeV3,
 		})
 
@@ -1255,6 +1267,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Propose Credential Continue", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		messenger.EXPECT().ReplyToMsg(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -1300,7 +1314,7 @@ func TestService_HandleInboundV3(t *testing.T) {
 		require.Equal(t, properties.MyDID(), Alice)
 		require.Equal(t, properties.TheirDID(), Bob)
 
-		action.Continue(WithOfferCredentialV3(&OfferCredentialV3{}))
+		action.Continue(WithOfferCredential(&OfferCredentialParams{}))
 
 		select {
 		case <-done:
@@ -1311,6 +1325,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Propose Credential Continue (async)", func(t *testing.T) {
+		_, messenger, _ := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		newProvider := issuecredentialMocks.NewMockProvider(ctrl)
@@ -1348,7 +1364,7 @@ func TestService_HandleInboundV3(t *testing.T) {
 		for _, action := range actions {
 			require.Equal(t, action.MyDID, Alice)
 			require.Equal(t, action.TheirDID, Bob)
-			require.NoError(t, svc.ActionContinue(action.PIID, WithOfferCredentialV3(&OfferCredentialV3{})))
+			require.NoError(t, svc.ActionContinue(action.PIID, WithOfferCredential(&OfferCredentialParams{})))
 		}
 
 		select {
@@ -1360,6 +1376,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Propose Credential Stop (async)", func(t *testing.T) {
+		_, messenger, _ := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		newProvider := issuecredentialMocks.NewMockProvider(ctrl)
@@ -1411,6 +1429,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Offer Credential Stop", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		messenger.EXPECT().
@@ -1469,6 +1489,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Offer Credential Continue with Proposal", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		messenger.EXPECT().ReplyToMsg(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -1514,7 +1536,7 @@ func TestService_HandleInboundV3(t *testing.T) {
 		require.Equal(t, properties.MyDID(), Alice)
 		require.Equal(t, properties.TheirDID(), Bob)
 
-		action.Continue(WithProposeCredentialV3(&ProposeCredentialV3{}))
+		action.Continue(WithProposeCredential(&ProposeCredentialParams{}))
 
 		select {
 		case <-done:
@@ -1525,6 +1547,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Offer Credential Continue with Invitation", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		messenger.EXPECT().ReplyToMsg(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -1570,7 +1594,7 @@ func TestService_HandleInboundV3(t *testing.T) {
 		require.Equal(t, properties.MyDID(), Alice)
 		require.Equal(t, properties.TheirDID(), Bob)
 
-		action.Continue(WithRequestCredentialV3(&RequestCredentialV3{}))
+		action.Continue(WithRequestCredential(&RequestCredentialParams{}))
 
 		select {
 		case <-done:
@@ -1581,6 +1605,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Offer Credential", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 		attachment := []decorator.AttachmentV2{{ID: "ID1"}, {ID: "ID2"}}
 
@@ -1640,6 +1666,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Invitation Credential Stop", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		messenger.EXPECT().
@@ -1698,6 +1726,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Invitation Credential Continue", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		messenger.EXPECT().ReplyToMsg(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -1743,7 +1773,7 @@ func TestService_HandleInboundV3(t *testing.T) {
 		require.Equal(t, properties.MyDID(), Alice)
 		require.Equal(t, properties.TheirDID(), Bob)
 
-		action.Continue(WithIssueCredentialV3(&IssueCredentialV3{}))
+		action.Continue(WithIssueCredential(&IssueCredentialParams{}))
 
 		select {
 		case <-done:
@@ -1754,6 +1784,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Problem Report (continue)", func(t *testing.T) {
+		store, _, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		store.EXPECT().Get(gomock.Any()).Return([]byte("request-sent"), nil)
@@ -1790,7 +1822,7 @@ func TestService_HandleInboundV3(t *testing.T) {
 		require.Equal(t, properties.MyDID(), Alice)
 		require.Equal(t, properties.TheirDID(), Bob)
 
-		action.Continue(WithIssueCredentialV3(&IssueCredentialV3{}))
+		action.Continue(WithIssueCredential(&IssueCredentialParams{}))
 
 		select {
 		case <-done:
@@ -1801,6 +1833,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Problem Report (stop)", func(t *testing.T) {
+		store, _, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		store.EXPECT().Get(gomock.Any()).Return([]byte("request-sent"), nil)
@@ -1848,6 +1882,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Issue Credential Continue", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		messenger.EXPECT().ReplyToMsg(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -1929,6 +1965,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Issue Credential Stop", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		messenger.EXPECT().ReplyToNested(gomock.Any(), gomock.Any()).
@@ -1986,6 +2024,8 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Receive Ack message", func(t *testing.T) {
+		store, _, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		store.EXPECT().Get(gomock.Any()).Return([]byte("credential-issued"), nil)
@@ -2020,6 +2060,9 @@ func TestService_HandleInboundV3(t *testing.T) {
 	})
 
 	t.Run("Invalid state transition", func(t *testing.T) {
+		store, _, provider := initMocks(ctrl)
+		store.EXPECT().Get(gomock.Any()).Return(nil, storage.ErrDataNotFound)
+
 		svc, err := New(provider)
 		require.NoError(t, err)
 
@@ -2042,19 +2085,29 @@ func TestService_HandleOutbound(t *testing.T) {
 
 	const errMsg = "error"
 
-	store := storageMocks.NewMockStore(ctrl)
+	initMocks := func(controller *gomock.Controller) (
+		store *storageMocks.MockStore,
+		messenger *serviceMocks.MockMessenger,
+		provider *issuecredentialMocks.MockProvider,
+	) {
+		store = storageMocks.NewMockStore(controller)
 
-	storeProvider := storageMocks.NewMockProvider(ctrl)
-	storeProvider.EXPECT().OpenStore(gomock.Any()).Return(store, nil).AnyTimes()
-	storeProvider.EXPECT().SetStoreConfig(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		storeProvider := storageMocks.NewMockProvider(controller)
+		storeProvider.EXPECT().OpenStore(gomock.Any()).Return(store, nil).AnyTimes()
+		storeProvider.EXPECT().SetStoreConfig(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	messenger := serviceMocks.NewMockMessenger(ctrl)
+		messenger = serviceMocks.NewMockMessenger(controller)
 
-	provider := issuecredentialMocks.NewMockProvider(ctrl)
-	provider.EXPECT().Messenger().Return(messenger).AnyTimes()
-	provider.EXPECT().StorageProvider().Return(storeProvider).AnyTimes()
+		provider = issuecredentialMocks.NewMockProvider(controller)
+		provider.EXPECT().Messenger().Return(messenger).AnyTimes()
+		provider.EXPECT().StorageProvider().Return(storeProvider).AnyTimes()
+
+		return store, messenger, provider
+	}
 
 	t.Run("DB error", func(t *testing.T) {
+		store, _, provider := initMocks(ctrl)
+
 		store.EXPECT().Get(gomock.Any()).Return(nil, errors.New(errMsg))
 
 		svc, err := New(provider)
@@ -2069,10 +2122,14 @@ func TestService_HandleOutbound(t *testing.T) {
 	})
 
 	t.Run("Unrecognized msgType", func(t *testing.T) {
+		store, _, provider := initMocks(ctrl)
+
+		store.EXPECT().Get(gomock.Any()).Return(nil, storage.ErrDataNotFound).AnyTimes()
+
 		svc, err := New(provider)
 		require.NoError(t, err)
 
-		piid, err := svc.HandleOutbound(service.NewDIDCommMsgMap(ProposeCredential{
+		piid, err := svc.HandleOutbound(service.NewDIDCommMsgMap(ProposeCredentialV2{
 			Type: "none",
 		}), "", "")
 		require.Empty(t, piid)
@@ -2080,8 +2137,11 @@ func TestService_HandleOutbound(t *testing.T) {
 	})
 
 	t.Run("Send Propose Credential", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
+		store.EXPECT().Get(gomock.Any()).Return(nil, storage.ErrDataNotFound)
 		store.EXPECT().Put(gomock.Any(), gomock.Any()).Do(func(_ string, name []byte) error {
 			require.Equal(t, "proposal-sent", string(name))
 
@@ -2091,7 +2151,7 @@ func TestService_HandleOutbound(t *testing.T) {
 		svc, err := New(provider)
 		require.NoError(t, err)
 
-		msg := service.NewDIDCommMsgMap(ProposeCredential{
+		msg := service.NewDIDCommMsgMap(ProposeCredentialV2{
 			Type: ProposeCredentialMsgTypeV2,
 		})
 
@@ -2103,8 +2163,8 @@ func TestService_HandleOutbound(t *testing.T) {
 			})
 
 		piid, err := svc.HandleOutbound(msg, Alice, Bob)
-		require.NotEmpty(t, piid)
 		require.NoError(t, err)
+		require.NotEmpty(t, piid)
 
 		select {
 		case <-done:
@@ -2115,12 +2175,15 @@ func TestService_HandleOutbound(t *testing.T) {
 	})
 
 	t.Run("Send Propose Credential with error", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
+		store.EXPECT().Get(gomock.Any()).Return(nil, storage.ErrDataNotFound).AnyTimes()
 		store.EXPECT().Put(gomock.Any(), gomock.Any()).Return(nil)
 
 		svc, err := New(provider)
 		require.NoError(t, err)
 
-		msg := service.NewDIDCommMsgMap(ProposeCredential{
+		msg := service.NewDIDCommMsgMap(ProposeCredentialV2{
 			Type: ProposeCredentialMsgTypeV2,
 		})
 
@@ -2132,8 +2195,11 @@ func TestService_HandleOutbound(t *testing.T) {
 	})
 
 	t.Run("Send Offer Credential", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
+		store.EXPECT().Get(gomock.Any()).Return(nil, storage.ErrDataNotFound).AnyTimes()
 		store.EXPECT().Put(gomock.Any(), gomock.Any()).Do(func(_ string, name []byte) error {
 			require.Equal(t, "offer-sent", string(name))
 
@@ -2143,7 +2209,7 @@ func TestService_HandleOutbound(t *testing.T) {
 		svc, err := New(provider)
 		require.NoError(t, err)
 
-		msg := service.NewDIDCommMsgMap(OfferCredential{
+		msg := service.NewDIDCommMsgMap(OfferCredentialV2{
 			Type: OfferCredentialMsgTypeV2,
 		})
 
@@ -2167,12 +2233,15 @@ func TestService_HandleOutbound(t *testing.T) {
 	})
 
 	t.Run("Send Offer with error", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
+		store.EXPECT().Get(gomock.Any()).Return(nil, storage.ErrDataNotFound).AnyTimes()
 		store.EXPECT().Put(gomock.Any(), gomock.Any()).Return(nil)
 
 		svc, err := New(provider)
 		require.NoError(t, err)
 
-		msg := service.NewDIDCommMsgMap(OfferCredential{
+		msg := service.NewDIDCommMsgMap(OfferCredentialV2{
 			Type: OfferCredentialMsgTypeV2,
 		})
 
@@ -2184,8 +2253,11 @@ func TestService_HandleOutbound(t *testing.T) {
 	})
 
 	t.Run("Send Invitation Credential", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
+		store.EXPECT().Get(gomock.Any()).Return(nil, storage.ErrDataNotFound).AnyTimes()
 		store.EXPECT().Put(gomock.Any(), gomock.Any()).Do(func(_ string, name []byte) error {
 			require.Equal(t, "request-sent", string(name))
 
@@ -2195,7 +2267,7 @@ func TestService_HandleOutbound(t *testing.T) {
 		svc, err := New(provider)
 		require.NoError(t, err)
 
-		msg := service.NewDIDCommMsgMap(RequestCredential{
+		msg := service.NewDIDCommMsgMap(RequestCredentialV2{
 			Type: RequestCredentialMsgTypeV2,
 		})
 
@@ -2219,12 +2291,15 @@ func TestService_HandleOutbound(t *testing.T) {
 	})
 
 	t.Run("Send Invitation with error", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
+		store.EXPECT().Get(gomock.Any()).Return(nil, storage.ErrDataNotFound).AnyTimes()
 		store.EXPECT().Put(gomock.Any(), gomock.Any()).Return(nil)
 
 		svc, err := New(provider)
 		require.NoError(t, err)
 
-		msg := service.NewDIDCommMsgMap(RequestCredential{
+		msg := service.NewDIDCommMsgMap(RequestCredentialV2{
 			Type: RequestCredentialMsgTypeV2,
 		})
 
@@ -2242,19 +2317,30 @@ func TestService_HandleOutboundV3(t *testing.T) {
 
 	const errMsg = "error"
 
-	store := storageMocks.NewMockStore(ctrl)
+	initMocks := func(controller *gomock.Controller) (
+		store *storageMocks.MockStore,
+		messenger *serviceMocks.MockMessenger,
+		provider *issuecredentialMocks.MockProvider,
+	) {
+		store = storageMocks.NewMockStore(controller)
+		store.EXPECT().Get(gomock.Any()).Return(nil, storage.ErrDataNotFound).AnyTimes()
 
-	storeProvider := storageMocks.NewMockProvider(ctrl)
-	storeProvider.EXPECT().OpenStore(gomock.Any()).Return(store, nil).AnyTimes()
-	storeProvider.EXPECT().SetStoreConfig(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		storeProvider := storageMocks.NewMockProvider(controller)
+		storeProvider.EXPECT().OpenStore(gomock.Any()).Return(store, nil).AnyTimes()
+		storeProvider.EXPECT().SetStoreConfig(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	messenger := serviceMocks.NewMockMessenger(ctrl)
+		messenger = serviceMocks.NewMockMessenger(controller)
 
-	provider := issuecredentialMocks.NewMockProvider(ctrl)
-	provider.EXPECT().Messenger().Return(messenger).AnyTimes()
-	provider.EXPECT().StorageProvider().Return(storeProvider).AnyTimes()
+		provider = issuecredentialMocks.NewMockProvider(controller)
+		provider.EXPECT().Messenger().Return(messenger).AnyTimes()
+		provider.EXPECT().StorageProvider().Return(storeProvider).AnyTimes()
+
+		return store, messenger, provider
+	}
 
 	t.Run("Send Propose Credential", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		store.EXPECT().Put(gomock.Any(), gomock.Any()).Do(func(_ string, name []byte) error {
@@ -2290,6 +2376,8 @@ func TestService_HandleOutboundV3(t *testing.T) {
 	})
 
 	t.Run("Send Propose Credential with error", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		store.EXPECT().Put(gomock.Any(), gomock.Any()).Return(nil)
 
 		svc, err := New(provider)
@@ -2307,6 +2395,8 @@ func TestService_HandleOutboundV3(t *testing.T) {
 	})
 
 	t.Run("Send Offer Credential", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		store.EXPECT().Put(gomock.Any(), gomock.Any()).Do(func(_ string, name []byte) error {
@@ -2342,6 +2432,8 @@ func TestService_HandleOutboundV3(t *testing.T) {
 	})
 
 	t.Run("Send Offer with error", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		store.EXPECT().Put(gomock.Any(), gomock.Any()).Return(nil)
 
 		svc, err := New(provider)
@@ -2359,6 +2451,8 @@ func TestService_HandleOutboundV3(t *testing.T) {
 	})
 
 	t.Run("Send Invitation Credential", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		done := make(chan struct{})
 
 		store.EXPECT().Put(gomock.Any(), gomock.Any()).Do(func(_ string, name []byte) error {
@@ -2394,6 +2488,8 @@ func TestService_HandleOutboundV3(t *testing.T) {
 	})
 
 	t.Run("Send Invitation with error", func(t *testing.T) {
+		store, messenger, provider := initMocks(ctrl)
+
 		store.EXPECT().Put(gomock.Any(), gomock.Any()).Return(nil)
 
 		svc, err := New(provider)
@@ -2461,7 +2557,7 @@ func TestService_ActionContinue(t *testing.T) {
 		svc, err := New(provider)
 		require.NoError(t, err)
 
-		err = svc.ActionContinue("piID", nil)
+		err = svc.ActionContinue("piID")
 		require.Contains(t, fmt.Sprintf("%v", err), "delete transitional payload: "+errMsg)
 	})
 }
@@ -2537,43 +2633,43 @@ func Test_stateFromName(t *testing.T) {
 }
 
 func Test_nextState(t *testing.T) {
-	next, err := nextState(service.NewDIDCommMsgMap(ProposeCredential{
+	next, err := nextState(service.NewDIDCommMsgMap(ProposeCredentialV2{
 		Type: ProposeCredentialMsgTypeV2,
 	}), true)
 	require.NoError(t, err)
 	require.Equal(t, next, &proposalSent{V: SpecV2})
 
-	next, err = nextState(service.NewDIDCommMsgMap(ProposeCredential{
+	next, err = nextState(service.NewDIDCommMsgMap(ProposeCredentialV2{
 		Type: ProposeCredentialMsgTypeV2,
 	}), false)
 	require.NoError(t, err)
 	require.Equal(t, next, &proposalReceived{V: SpecV2})
 
-	next, err = nextState(service.NewDIDCommMsgMap(OfferCredential{
+	next, err = nextState(service.NewDIDCommMsgMap(OfferCredentialV2{
 		Type: OfferCredentialMsgTypeV2,
 	}), true)
 	require.NoError(t, err)
 	require.Equal(t, next, &offerSent{V: SpecV2})
 
-	next, err = nextState(service.NewDIDCommMsgMap(OfferCredential{
+	next, err = nextState(service.NewDIDCommMsgMap(OfferCredentialV2{
 		Type: OfferCredentialMsgTypeV2,
 	}), false)
 	require.NoError(t, err)
 	require.Equal(t, next, &offerReceived{V: SpecV2})
 
-	next, err = nextState(service.NewDIDCommMsgMap(RequestCredential{
+	next, err = nextState(service.NewDIDCommMsgMap(RequestCredentialV2{
 		Type: RequestCredentialMsgTypeV2,
 	}), true)
 	require.NoError(t, err)
 	require.Equal(t, next, &requestSent{V: SpecV2})
 
-	next, err = nextState(service.NewDIDCommMsgMap(RequestCredential{
+	next, err = nextState(service.NewDIDCommMsgMap(RequestCredentialV2{
 		Type: RequestCredentialMsgTypeV2,
 	}), false)
 	require.NoError(t, err)
 	require.Equal(t, next, &requestReceived{V: SpecV2})
 
-	next, err = nextState(service.NewDIDCommMsgMap(IssueCredential{
+	next, err = nextState(service.NewDIDCommMsgMap(IssueCredentialV2{
 		Type: IssueCredentialMsgTypeV2,
 	}), false)
 	require.NoError(t, err)
@@ -2611,19 +2707,19 @@ func TestService_Accept(t *testing.T) {
 }
 
 func TestService_canTriggerActionEvents(t *testing.T) {
-	require.True(t, canTriggerActionEvents(service.NewDIDCommMsgMap(ProposeCredential{
+	require.True(t, canTriggerActionEvents(service.NewDIDCommMsgMap(ProposeCredentialV2{
 		Type: ProposeCredentialMsgTypeV2,
 	})))
 
-	require.True(t, canTriggerActionEvents(service.NewDIDCommMsgMap(OfferCredential{
+	require.True(t, canTriggerActionEvents(service.NewDIDCommMsgMap(OfferCredentialV2{
 		Type: OfferCredentialMsgTypeV2,
 	})))
 
-	require.True(t, canTriggerActionEvents(service.NewDIDCommMsgMap(IssueCredential{
+	require.True(t, canTriggerActionEvents(service.NewDIDCommMsgMap(IssueCredentialV2{
 		Type: IssueCredentialMsgTypeV2,
 	})))
 
-	require.True(t, canTriggerActionEvents(service.NewDIDCommMsgMap(RequestCredential{
+	require.True(t, canTriggerActionEvents(service.NewDIDCommMsgMap(RequestCredentialV2{
 		Type: RequestCredentialMsgTypeV2,
 	})))
 
