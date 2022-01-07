@@ -71,14 +71,14 @@ func NewAries(opts *config.Options) (*Aries, error) {
 		return nil, fmt.Errorf("failed to initialize Aries framework: %w", err)
 	}
 
-	context, err := framework.Context()
+	ctx, err := framework.Context()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Framework context: %w", err)
 	}
 
 	notifications := make(chan notifier.NotificationPayload)
 
-	commandHandlers, err := controller.GetCommandHandlers(context,
+	commandHandlers, err := controller.GetCommandHandlers(ctx,
 		controller.WithNotifier(notifier.NewNotifier(notifications)),
 		controller.WithAutoAccept(opts.AutoAccept),
 		controller.WithMessageHandler(opts.MsgHandler),
@@ -118,40 +118,53 @@ func prepareFrameworkOptions(opts *config.Options) ([]aries.Option, error) {
 	}
 
 	for _, transport := range opts.OutboundTransport {
-		switch transport {
-		case "http":
-			outbound, err := arieshttp.NewOutbound(arieshttp.WithOutboundHTTPClient(&http.Client{}))
-			if err != nil {
-				return nil, err
-			}
-
-			options = append(options, aries.WithOutboundTransports(outbound))
-		case "ws":
-			options = append(options, aries.WithOutboundTransports(ws.NewOutbound()))
-		default:
-			return nil, fmt.Errorf("unsupported transport : %s", transport)
+		otOpts, err := getOutBoundTransportOpts(transport)
+		if err != nil {
+			return nil, fmt.Errorf("failed to prepare outbound transport opts : %w", err)
 		}
+
+		options = append(options, otOpts...)
 	}
 
 	if len(opts.HTTPResolvers) > 0 {
-		rsopts, err := getResolverOpts(opts.HTTPResolvers)
+		rsOpts, err := getResolverOpts(opts.HTTPResolvers)
 		if err != nil {
 			return nil, fmt.Errorf("failed to prepare http resolver opts : %w", err)
 		}
 
-		options = append(options, rsopts...)
+		options = append(options, rsOpts...)
 	}
 
 	if opts.DocumentLoader != nil {
-		ctx, err := createJsonLdContext(storeProvider)
-		documentLoader, err := ld.NewDocumentLoader(ctx, ld.WithRemoteDocumentLoader(opts.DocumentLoader))
+		dlOpts, err := getDocumentLoaderOpts(storeProvider, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to prepare document loader opts : %w", err)
 		}
-		options = append(options, aries.WithJSONLDDocumentLoader(documentLoader))
+
+		options = append(options, dlOpts...)
 	}
 
 	return options, nil
+}
+
+func getOutBoundTransportOpts(transport string) ([]aries.Option, error) {
+	var opts []aries.Option
+
+	switch transport {
+	case "http":
+		outbound, err := arieshttp.NewOutbound(arieshttp.WithOutboundHTTPClient(&http.Client{}))
+		if err != nil {
+			return nil, err
+		}
+
+		opts = append(opts, aries.WithOutboundTransports(outbound))
+	case "ws":
+		opts = append(opts, aries.WithOutboundTransports(ws.NewOutbound()))
+	default:
+		return nil, fmt.Errorf("unsupported transport : %s", transport)
+	}
+
+	return opts, nil
 }
 
 func getResolverOpts(httpResolvers []string) ([]aries.Option, error) {
@@ -179,7 +192,7 @@ func getResolverOpts(httpResolvers []string) ([]aries.Option, error) {
 	return opts, nil
 }
 
-func createJsonLdContext(storageProvider *storage.Provider) (*context.Provider, error)  {
+func createJSONLdContext(storageProvider *storage.Provider) (*context.Provider, error) {
 	contextStore, err := ldstore.NewContextStore(cachedstore.NewProvider(storageProvider, mem.NewProvider()))
 	if err != nil {
 		return nil, fmt.Errorf("create JSON-LD context store: %w", err)
@@ -200,6 +213,24 @@ func createJsonLdContext(storageProvider *storage.Provider) (*context.Provider, 
 	}
 
 	return ctx, nil
+}
+
+func getDocumentLoaderOpts(storageProvider *storage.Provider, options *config.Options) ([]aries.Option, error) {
+	var opts []aries.Option
+
+	ctx, err := createJSONLdContext(storageProvider)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare json ld context : %w", err)
+	}
+
+	documentLoader, err := ld.NewDocumentLoader(ctx, ld.WithRemoteDocumentLoader(options.DocumentLoader))
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare document loader opts : %w", err)
+	}
+
+	opts = append(opts, aries.WithJSONLDDocumentLoader(documentLoader))
+
+	return opts, nil
 }
 
 func populateHandlers(commands []command.Handler, pkgMap map[string]map[string]command.Exec) {
