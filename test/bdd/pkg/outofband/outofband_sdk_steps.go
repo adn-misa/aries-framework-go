@@ -787,8 +787,6 @@ func (sdk *SDKSteps) createOOBV2WithPresentProof(agent1 string) error {
 		}},
 	})
 
-	ppfv3Req["from"] = agentDIDDoc.ID
-
 	ppfv3Attachment := []*decorator.AttachmentV2{{
 		ID:          uuid.New().String(),
 		Description: "PresentProof V3 propose presentation request",
@@ -800,10 +798,14 @@ func (sdk *SDKSteps) createOOBV2WithPresentProof(agent1 string) error {
 		},
 	}}
 
-	inv := oobv2Client1.CreateInvitation(
+	inv, err := oobv2Client1.CreateInvitation(
 		outofbandv2.WithGoal(ppfGoal, ppfGoalCode),
 		outofbandv2.WithAttachments(ppfv3Attachment...),
+		outofbandv2.WithFrom(agentDIDDoc.ID),
 	)
+	if err != nil {
+		return fmt.Errorf("failed to create invitation: %w", err)
+	}
 
 	sdk.pendingV2Invites[agent1] = inv
 
@@ -823,10 +825,12 @@ func (sdk *SDKSteps) acceptOOBV2Invitation(agent1, agent2 string) error {
 
 	inv := sdk.pendingV2Invites[agent1]
 
-	_, err = oobv2Client2.AcceptInvitation(inv)
+	connID, err := oobv2Client2.AcceptInvitation(inv)
 	if err != nil {
 		return fmt.Errorf("failed to accept oobv2 invitation for %s : %w", agent1, err)
 	}
+
+	sdk.context.SaveConnectionID(agent2, agent1, connID)
 
 	return nil
 }

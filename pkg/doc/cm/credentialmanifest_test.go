@@ -9,6 +9,7 @@ package cm_test
 import (
 	_ "embed"
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,14 +20,29 @@ import (
 	"github.com/hyperledger/aries-framework-go/pkg/internal/ldtestutil"
 )
 
+// Sample Credential Manifests for a university degree.
 var (
-	//go:embed testdata/valid_credential_manifest.json
-	validCredentialManifest []byte //nolint:gochecknoglobals
-	//go:embed testdata/valid_credential_manifest_with_format.json
-	validCredentialManifestWithFormat []byte //nolint:gochecknoglobals
-	//go:embed testdata/valid_credential_manifest_with_presentation_definition.json
-	validCredentialManifestWithPresentationSubmission []byte //nolint:gochecknoglobals
-	//go:embed testdata/valid_credential.jsonld
+	//go:embed testdata/credential_manifest_university_degree.json
+	credentialManifestUniversityDegree []byte //nolint:gochecknoglobals
+	//go:embed testdata/credential_manifest_university_degree_with_format.json
+	credentialManifestUniversityDegreeWithFormat []byte //nolint:gochecknoglobals
+	//go:embed testdata/credential_manifest_university_degree_with_presentation_definition.json
+	credentialManifestUniversityDegreeWithPresentationDefinition []byte //nolint:gochecknoglobals
+)
+
+// Sample Credential Manifests for a driver's license.
+var (
+	//go:embed testdata/credential_manifest_drivers_license.json
+	credentialManifestDriversLicense []byte //nolint:gochecknoglobals
+	//go:embed testdata/credential_manifest_drivers_license_with_presentation_definition.json
+	credentialManifestDriversLicenseWithPresentationDefinition []byte //nolint:gochecknoglobals
+	//go:embed testdata/credential_manifest_drivers_license_with_presentation_definition_and_format.json
+	credentialManifestDriversLicenseWithPresentationDefinitionAndFormat []byte //nolint:gochecknoglobals
+)
+
+// Sample verifiable credential for a university degree.
+var (
+	//go:embed testdata/credential_university_degree.jsonld
 	validVC []byte //nolint:gochecknoglobals
 )
 
@@ -35,17 +51,17 @@ const invalidJSONPath = "%InvalidJSONPath"
 func TestCredentialManifest_Unmarshal(t *testing.T) {
 	t.Run("Valid Credential Manifest", func(t *testing.T) {
 		t.Run("Without format or Presentation Submission", func(t *testing.T) {
-			makeCredentialManifestFromBytes(t, validCredentialManifest)
+			makeCredentialManifestFromBytes(t, credentialManifestUniversityDegree)
 		})
 		t.Run("With format", func(t *testing.T) {
-			makeCredentialManifestFromBytes(t, validCredentialManifestWithFormat)
+			makeCredentialManifestFromBytes(t, credentialManifestUniversityDegreeWithFormat)
 		})
 		t.Run("With Presentation Submission", func(t *testing.T) {
-			makeCredentialManifestFromBytes(t, validCredentialManifestWithPresentationSubmission)
+			makeCredentialManifestFromBytes(t, credentialManifestUniversityDegreeWithPresentationDefinition)
 		})
 	})
 	t.Run("Missing issuer ID", func(t *testing.T) {
-		credentialManifest := makeCredentialManifestFromBytes(t, validCredentialManifest)
+		credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestUniversityDegree)
 
 		credentialManifest.Issuer.ID = ""
 
@@ -56,7 +72,7 @@ func TestCredentialManifest_Unmarshal(t *testing.T) {
 		require.EqualError(t, err, "invalid credential manifest: issuer ID missing")
 	})
 	t.Run("No output descriptors", func(t *testing.T) {
-		credentialManifest := makeCredentialManifestFromBytes(t, validCredentialManifest)
+		credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestUniversityDegree)
 
 		credentialManifest.OutputDescriptors = nil
 
@@ -67,7 +83,7 @@ func TestCredentialManifest_Unmarshal(t *testing.T) {
 		require.EqualError(t, err, "invalid credential manifest: no output descriptors found")
 	})
 	t.Run("Output descriptor missing ID", func(t *testing.T) {
-		credentialManifest := makeCredentialManifestFromBytes(t, validCredentialManifest)
+		credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestUniversityDegree)
 
 		credentialManifest.OutputDescriptors[0].ID = ""
 
@@ -78,7 +94,7 @@ func TestCredentialManifest_Unmarshal(t *testing.T) {
 		require.EqualError(t, err, "invalid credential manifest: missing ID for output descriptor at index 0")
 	})
 	t.Run("Duplicate output descriptor IDs", func(t *testing.T) {
-		credentialManifest := makeCredentialManifestFromBytes(t, validCredentialManifest)
+		credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestUniversityDegree)
 
 		credentialManifest.OutputDescriptors =
 			append(credentialManifest.OutputDescriptors,
@@ -92,7 +108,7 @@ func TestCredentialManifest_Unmarshal(t *testing.T) {
 			"in multiple output descriptors")
 	})
 	t.Run("Missing schema for output descriptor", func(t *testing.T) {
-		credentialManifest := makeCredentialManifestFromBytes(t, validCredentialManifest)
+		credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestUniversityDegree)
 
 		credentialManifest.OutputDescriptors[0].Schema = ""
 
@@ -158,7 +174,7 @@ func TestCredentialManifest_ResolveOutputDescriptors(t *testing.T) {
 		t.Run("All descriptors resolved without needing to use fallbacks", func(t *testing.T) {
 			var credentialManifest cm.CredentialManifest
 
-			err := json.Unmarshal(validCredentialManifest, &credentialManifest)
+			err := json.Unmarshal(credentialManifestUniversityDegree, &credentialManifest)
 			require.NoError(t, err)
 
 			vc := parseTestCredential(t, validVC)
@@ -177,7 +193,7 @@ func TestCredentialManifest_ResolveOutputDescriptors(t *testing.T) {
 		t.Run("Fallbacks used for some descriptors", func(t *testing.T) {
 			var credentialManifest cm.CredentialManifest
 
-			err := json.Unmarshal(validCredentialManifest, &credentialManifest)
+			err := json.Unmarshal(credentialManifestUniversityDegree, &credentialManifest)
 			require.NoError(t, err)
 
 			vc := parseTestCredential(t, createValidVCMissingSomeFields(t))
@@ -250,6 +266,157 @@ func TestCredentialManifest_ResolveOutputDescriptors(t *testing.T) {
 	})
 }
 
+func TestResolveFulfillmentVC(t *testing.T) {
+	t.Run("Successes", func(t *testing.T) {
+		testTable := map[string]struct {
+			credentialManifest             []byte
+			presentation                   []byte
+			expectedDataDisplayDescriptors [][]cm.ResolvedDataDisplayDescriptor
+		}{
+			"No fallback values needed to be used used": {
+				credentialManifest: credentialManifestDriversLicense,
+				presentation:       vpWithDriversLicenseVCAndDisplayData,
+				expectedDataDisplayDescriptors: [][]cm.ResolvedDataDisplayDescriptor{
+					{
+						{
+							Title:    "Driver's License",
+							Subtitle: "A",
+							Description: "License to operate a vehicle with a gross combined weight rating (GCWR) of " +
+								"26,001 or more pounds, as long as the GVWR of the vehicle(s) being towed is over " +
+								"10,000 pounds.",
+							Properties: []interface{}{true},
+						},
+					},
+				},
+			},
+			"Fallback values used for every field": {
+				credentialManifest: credentialManifestDriversLicense,
+				presentation:       vpWithDriversLicenseVC,
+				expectedDataDisplayDescriptors: [][]cm.ResolvedDataDisplayDescriptor{
+					{
+						{
+							Title:    "Washington State Driver License",
+							Subtitle: "Class A, Commercial",
+							Description: "License to operate a vehicle with a gross combined weight rating (GCWR) of " +
+								"26,001 or more pounds, as long as the GVWR of the vehicle(s) being towed is over " +
+								"10,000 pounds.",
+							Properties: []interface{}{"Unknown"},
+						},
+					},
+				},
+			},
+		}
+
+		for testName, testData := range testTable {
+			credentialManifest := makeCredentialManifestFromBytes(t, testData.credentialManifest)
+
+			existingPresentation := makePresentationFromBytes(t, testData.presentation, testName)
+
+			presentation, err := cm.PresentCredentialFulfillment(&credentialManifest,
+				cm.WithExistingPresentationForPresentCredentialFulfillment(existingPresentation))
+			require.NoError(t, err, errorMessageTestNameFormat, testName)
+			require.NotNil(t, presentation, errorMessageTestNameFormat, testName)
+
+			resolvedDataDisplayDescriptors, err := credentialManifest.ResolveFulfillmentVC(presentation,
+				verifiable.WithDisabledProofCheck(), verifiable.WithJSONLDDocumentLoader(createTestDocumentLoader(t)))
+			require.NoError(t, err, errorMessageTestNameFormat, testName)
+			require.NotNil(t, resolvedDataDisplayDescriptors, errorMessageTestNameFormat, testName)
+
+			require.True(t, reflect.DeepEqual(resolvedDataDisplayDescriptors, testData.expectedDataDisplayDescriptors),
+				errorMessageTestNameFormat+" the data display descriptors differ from what was expected", testName)
+		}
+	})
+	t.Run("Nil VP argument", func(t *testing.T) {
+		credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestDriversLicense)
+
+		resolvedDataDisplayDescriptors, err := credentialManifest.ResolveFulfillmentVC(nil)
+		require.EqualError(t, err, "fulfillment presentation cannot be nil")
+		require.Nil(t, resolvedDataDisplayDescriptors)
+	})
+	t.Run("VP has no Credential Fulfillment", func(t *testing.T) {
+		credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestDriversLicense)
+
+		presentation := makePresentationFromBytes(t,
+			vpWithDriversLicenseVC, "VP has no Credential Fulfillment")
+
+		resolvedDataDisplayDescriptors, err := credentialManifest.ResolveFulfillmentVC(presentation)
+		require.EqualError(t, err, "the given presentation does not have an embedded Credential Fulfillment")
+		require.Nil(t, resolvedDataDisplayDescriptors)
+	})
+	t.Run("Fail to parse credential", func(t *testing.T) {
+		credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestDriversLicense)
+
+		existingPresentation := makePresentationFromBytes(t,
+			vpWithDriversLicenseVC, "Fail to parse credential")
+
+		presentation, err := cm.PresentCredentialFulfillment(&credentialManifest,
+			cm.WithExistingPresentationForPresentCredentialFulfillment(existingPresentation))
+		require.NoError(t, err)
+		require.NotNil(t, presentation)
+
+		resolvedDataDisplayDescriptors, err := credentialManifest.ResolveFulfillmentVC(presentation)
+		require.EqualError(t, err, "failed to parse the credential at index 0: "+
+			"decode new credential: public key fetcher is not defined")
+		require.Nil(t, resolvedDataDisplayDescriptors)
+	})
+	t.Run("Fail to resolve output descriptors credential", func(t *testing.T) {
+		credentialManifest := createCredentialManifestWithInvalidTitleJSONPath(t)
+
+		existingPresentation := makePresentationFromBytes(t,
+			vpWithDriversLicenseVC, "Fail to resolve output descriptors credential")
+
+		presentation, err := cm.PresentCredentialFulfillment(&credentialManifest,
+			cm.WithExistingPresentationForPresentCredentialFulfillment(existingPresentation))
+		require.NoError(t, err)
+		require.NotNil(t, presentation)
+
+		resolvedDataDisplayDescriptors, err := credentialManifest.ResolveFulfillmentVC(presentation,
+			verifiable.WithDisabledProofCheck(), verifiable.WithJSONLDDocumentLoader(createTestDocumentLoader(t)))
+		require.EqualError(t, err, "failed to resolve data display descriptors for the credential at index "+
+			"0: failed to resolve output descriptors at index 0: failed to resolve title display mapping object: "+
+			`parsing error: %InvalidJSONPath	:1:1 - 1:2 unexpected "%" while scanning extensions`)
+		require.Nil(t, resolvedDataDisplayDescriptors)
+	})
+	t.Run("Fail to marshal raw Credential Fulfillment", func(t *testing.T) {
+		credentialManifest := createCredentialManifestWithInvalidTitleJSONPath(t)
+
+		existingPresentation := makePresentationFromBytes(t,
+			vpWithDriversLicenseVC, "Fail to marshal raw Credential Fulfillment")
+
+		presentation, err := cm.PresentCredentialFulfillment(&credentialManifest,
+			cm.WithExistingPresentationForPresentCredentialFulfillment(existingPresentation))
+		require.NoError(t, err)
+		require.NotNil(t, presentation)
+
+		presentation.CustomFields = map[string]interface{}{"credential_fulfillment": make(chan struct{})}
+
+		resolvedDataDisplayDescriptors, err := credentialManifest.ResolveFulfillmentVC(presentation,
+			verifiable.WithDisabledProofCheck(), verifiable.WithJSONLDDocumentLoader(createTestDocumentLoader(t)))
+		require.EqualError(t, err, "failed to marshal the raw Credential Fulfillment obtained from the "+
+			"presentation into bytes: json: unsupported type: chan struct {}")
+		require.Nil(t, resolvedDataDisplayDescriptors)
+	})
+	t.Run("Fail to unmarshal raw Credential Fulfillment", func(t *testing.T) {
+		credentialManifest := createCredentialManifestWithInvalidTitleJSONPath(t)
+
+		existingPresentation := makePresentationFromBytes(t,
+			vpWithDriversLicenseVC, "Fail to unmarshal raw Credential Fulfillment")
+
+		presentation, err := cm.PresentCredentialFulfillment(&credentialManifest,
+			cm.WithExistingPresentationForPresentCredentialFulfillment(existingPresentation))
+		require.NoError(t, err)
+		require.NotNil(t, presentation)
+
+		presentation.CustomFields = map[string]interface{}{"credential_fulfillment": "invalid"}
+
+		resolvedDataDisplayDescriptors, err := credentialManifest.ResolveFulfillmentVC(presentation,
+			verifiable.WithDisabledProofCheck(), verifiable.WithJSONLDDocumentLoader(createTestDocumentLoader(t)))
+		require.EqualError(t, err, "failed to unmarshal the raw Credential Fulfillment: json: cannot "+
+			"unmarshal string into Go value of type cm.CredentialFulfillment")
+		require.Nil(t, resolvedDataDisplayDescriptors)
+	})
+}
+
 func createMarshalledCredentialManifestWithInvalidTitleJSONPath(t *testing.T) []byte {
 	credentialManifest := createCredentialManifestWithInvalidTitleJSONPath(t)
 
@@ -260,7 +427,7 @@ func createMarshalledCredentialManifestWithInvalidTitleJSONPath(t *testing.T) []
 }
 
 func createCredentialManifestWithInvalidTitleJSONPath(t *testing.T) cm.CredentialManifest {
-	credentialManifest := makeCredentialManifestFromBytes(t, validCredentialManifest)
+	credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestUniversityDegree)
 
 	credentialManifest.OutputDescriptors[0].Display.Title.Paths[0] = invalidJSONPath
 
@@ -277,7 +444,7 @@ func createMarshalledCredentialManifestWithInvalidSubtitleJSONPath(t *testing.T)
 }
 
 func createCredentialManifestWithInvalidSubtitleJSONPath(t *testing.T) cm.CredentialManifest {
-	credentialManifest := makeCredentialManifestFromBytes(t, validCredentialManifest)
+	credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestUniversityDegree)
 
 	credentialManifest.OutputDescriptors[0].Display.Subtitle.Paths[0] = invalidJSONPath
 
@@ -294,7 +461,7 @@ func createMarshalledCredentialManifestWithInvalidDescriptionJSONPath(t *testing
 }
 
 func createCredentialManifestWithInvalidDescriptionJSONPath(t *testing.T) cm.CredentialManifest {
-	credentialManifest := makeCredentialManifestFromBytes(t, validCredentialManifest)
+	credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestUniversityDegree)
 
 	credentialManifest.OutputDescriptors[0].Display.Description.Paths = []string{invalidJSONPath}
 
@@ -311,7 +478,7 @@ func createMarshalledCredentialManifestWithInvalidPropertyJSONPath(t *testing.T)
 }
 
 func createCredentialManifestWithInvalidPropertyJSONPath(t *testing.T) cm.CredentialManifest {
-	credentialManifest := makeCredentialManifestFromBytes(t, validCredentialManifest)
+	credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestUniversityDegree)
 
 	credentialManifest.OutputDescriptors[0].Display.Properties[0].Paths[0] = invalidJSONPath
 
@@ -328,7 +495,7 @@ func createMarshalledCredentialManifestWithInvalidSchemaType(t *testing.T) []byt
 }
 
 func createCredentialManifestWithInvalidSchemaType(t *testing.T) cm.CredentialManifest {
-	credentialManifest := makeCredentialManifestFromBytes(t, validCredentialManifest)
+	credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestUniversityDegree)
 
 	credentialManifest.OutputDescriptors[0].Display.Title.Schema.Type = "InvalidSchemaType"
 
@@ -345,7 +512,7 @@ func createMarshalledCredentialManifestWithInvalidSchemaFormat(t *testing.T) []b
 }
 
 func createCredentialManifestWithInvalidSchemaFormat(t *testing.T) cm.CredentialManifest {
-	credentialManifest := makeCredentialManifestFromBytes(t, validCredentialManifest)
+	credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestUniversityDegree)
 
 	credentialManifest.OutputDescriptors[0].Display.Title.Schema = cm.Schema{
 		Type:   "string",
@@ -356,7 +523,7 @@ func createCredentialManifestWithInvalidSchemaFormat(t *testing.T) cm.Credential
 }
 
 func createCredentialManifestWithNilJWTFormat(t *testing.T) cm.CredentialManifest {
-	credentialManifest := makeCredentialManifestFromBytes(t, validCredentialManifestWithFormat)
+	credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestUniversityDegreeWithFormat)
 
 	credentialManifest.Format.Jwt = nil
 
@@ -364,15 +531,14 @@ func createCredentialManifestWithNilJWTFormat(t *testing.T) cm.CredentialManifes
 }
 
 func createCredentialManifestWithNilLDPFormat(t *testing.T) cm.CredentialManifest {
-	credentialManifest := makeCredentialManifestFromBytes(t, validCredentialManifestWithFormat)
+	credentialManifest := makeCredentialManifestFromBytes(t, credentialManifestUniversityDegreeWithFormat)
 
 	credentialManifest.Format.Ldp = nil
 
 	return credentialManifest
 }
 
-func makeCredentialManifestFromBytes(t *testing.T,
-	credentialManifestBytes []byte) cm.CredentialManifest {
+func makeCredentialManifestFromBytes(t *testing.T, credentialManifestBytes []byte) cm.CredentialManifest {
 	var credentialManifest cm.CredentialManifest
 
 	err := json.Unmarshal(credentialManifestBytes, &credentialManifest)
