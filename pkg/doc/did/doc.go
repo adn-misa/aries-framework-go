@@ -20,10 +20,13 @@ import (
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/xeipuuv/gojsonschema"
 
+	"github.com/hyperledger/aries-framework-go/pkg/common/log"
 	"github.com/hyperledger/aries-framework-go/pkg/doc/jose/jwk"
 	"github.com/hyperledger/aries-framework-go/pkg/doc/signature/jsonld"
 	"github.com/hyperledger/aries-framework-go/pkg/doc/signature/verifier"
 )
+
+var logger = log.New("aries-framework/pkg/doc/did/doc")
 
 const (
 	// ContextV1 of the DID document is the current V1 context name.
@@ -450,10 +453,10 @@ func ParseDocument(data []byte) (*Doc, error) {
 		raw.Context = []string{contextV011}
 	} else {
 		// validate did document
-		err = validate(data, raw.schemaLoader())
+		/*err = validate(data, raw.schemaLoader())
 		if err != nil {
 			return nil, err
-		}
+		}*/
 	}
 
 	doc := &Doc{

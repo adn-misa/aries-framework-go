@@ -20,6 +20,7 @@ import (
 
 const (
 	didLDJson = "application/did+ld+json"
+	lDJson    = "application/ld+json"
 )
 
 // resolveDID makes DID resolution via HTTP.
@@ -29,7 +30,7 @@ func (v *VDR) resolveDID(uri string) ([]byte, error) {
 		return nil, fmt.Errorf("HTTP create get request failed: %w", err)
 	}
 
-	req.Header.Add("Accept", didLDJson)
+	req.Header.Add("Accept", lDJson)
 
 	if v.resolveAuthToken != "" {
 		req.Header.Add("Authorization", v.resolveAuthToken)
@@ -49,7 +50,8 @@ func (v *VDR) resolveDID(uri string) ([]byte, error) {
 		return nil, fmt.Errorf("reading response body failed: %w", err)
 	}
 
-	if resp.StatusCode == http.StatusOK && strings.Contains(resp.Header.Get("Content-type"), didLDJson) {
+	if resp.StatusCode == http.StatusOK &&
+		(strings.Contains(resp.Header.Get("Content-type"), didLDJson) || strings.Contains(resp.Header.Get("Content-type"), lDJson)) {
 		return gotBody, nil
 	} else if resp.StatusCode == http.StatusNotFound {
 		return nil, vdrapi.ErrNotFound
@@ -94,6 +96,8 @@ func (v *VDR) Read(didID string, _ ...vdrapi.DIDMethodOption) (*did.DocResolutio
 	}
 
 	didDoc = interopPreprocess(didDoc)
+
+	logger.Infof("got following diddoc %w", didDoc)
 
 	return &did.DocResolution{DIDDocument: didDoc}, nil
 }
