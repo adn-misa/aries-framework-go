@@ -13,11 +13,12 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	jsonld "github.com/piprate/json-gold/ld"
 
 	"github.com/hyperledger/aries-framework-go/cmd/aries-agent-mobile/pkg/api"
 	"github.com/hyperledger/aries-framework-go/cmd/aries-agent-mobile/pkg/wrappers/config"
 	"github.com/hyperledger/aries-framework-go/cmd/aries-agent-mobile/pkg/wrappers/notifier"
-	"github.com/hyperledger/aries-framework-go/cmd/aries-agent-mobile/pkg/wrappers/storage"
+	storageWrapper "github.com/hyperledger/aries-framework-go/cmd/aries-agent-mobile/pkg/wrappers/storage"
 	"github.com/hyperledger/aries-framework-go/component/storageutil/cachedstore"
 	"github.com/hyperledger/aries-framework-go/component/storageutil/mem"
 	"github.com/hyperledger/aries-framework-go/pkg/common/log"
@@ -44,6 +45,7 @@ import (
 	"github.com/hyperledger/aries-framework-go/pkg/framework/context"
 	ldstore "github.com/hyperledger/aries-framework-go/pkg/store/ld"
 	"github.com/hyperledger/aries-framework-go/pkg/vdr/httpbinding"
+	"github.com/hyperledger/aries-framework-go/spi/storage"
 )
 
 var logger = log.New("aries-agent-mobile/wrappers/command")
@@ -110,12 +112,14 @@ func prepareFrameworkOptions(opts *config.Options) ([]aries.Option, error) {
 		options = append(options, aries.WithTransportReturnRoute(opts.TransportReturnRoute))
 	}
 
-	storeProvider := storage.New(opts.Storage)
+	var storageProvider storage.Provider
 	if opts.Storage != nil {
-		options = append(options, aries.WithStoreProvider(storeProvider))
+		storageProvider = storageWrapper.New(opts.Storage)
 	} else {
-		options = append(options, aries.WithStoreProvider(mem.NewProvider()))
+		storageProvider = mem.NewProvider()
 	}
+
+	options = append(options, aries.WithStoreProvider(storageProvider))
 
 	for _, transport := range opts.OutboundTransport {
 		otOpts, err := getOutBoundTransportOpts(transport)
@@ -136,7 +140,10 @@ func prepareFrameworkOptions(opts *config.Options) ([]aries.Option, error) {
 	}
 
 	if opts.DocumentLoader != nil {
-		dlOpts, err := getDocumentLoaderOpts(storeProvider, opts)
+		options = append(options, aries.WithJSONLDDocumentLoader(opts.DocumentLoader))
+	} else {
+		dlOpts, err := getDocumentLoaderOpts(storageProvider, opts)
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to prepare document loader opts : %w", err)
 		}
@@ -192,7 +199,7 @@ func getResolverOpts(httpResolvers []string) ([]aries.Option, error) {
 	return opts, nil
 }
 
-func createJSONLdContext(storageProvider *storage.Provider) (*context.Provider, error) {
+func createJSONLdContext(storageProvider storage.Provider) (*context.Provider, error) {
 	contextStore, err := ldstore.NewContextStore(cachedstore.NewProvider(storageProvider, mem.NewProvider()))
 	if err != nil {
 		return nil, fmt.Errorf("create JSON-LD context store: %w", err)
@@ -215,7 +222,7 @@ func createJSONLdContext(storageProvider *storage.Provider) (*context.Provider, 
 	return ctx, nil
 }
 
-func getDocumentLoaderOpts(storageProvider *storage.Provider, options *config.Options) ([]aries.Option, error) {
+func getDocumentLoaderOpts(storageProvider storage.Provider, options *config.Options) ([]aries.Option, error) {
 	var opts []aries.Option
 
 	ctx, err := createJSONLdContext(storageProvider)
@@ -223,7 +230,15 @@ func getDocumentLoaderOpts(storageProvider *storage.Provider, options *config.Op
 		return nil, fmt.Errorf("failed to prepare json ld context : %w", err)
 	}
 
-	documentLoader, err := ld.NewDocumentLoader(ctx, ld.WithRemoteDocumentLoader(options.DocumentLoader))
+	var documentLoader *ld.DocumentLoader
+
+	if options.LoadRemoteDocuments {
+		remoteDocumentLoader := jsonld.NewDefaultDocumentLoader(http.DefaultClient)
+		documentLoader, err = ld.NewDocumentLoader(ctx, ld.WithRemoteDocumentLoader(remoteDocumentLoader))
+	} else {
+		documentLoader, err = ld.NewDocumentLoader(ctx)
+	}
+	
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare document loader opts : %w", err)
 	}
